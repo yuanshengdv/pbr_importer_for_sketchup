@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="../vendor/modus/modus.min.css" rel="stylesheet">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <style>
+    .delete-btn {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .delete-btn:hover {
+      background-color: #c0392b;
+    }
+
+    .add-btn, .save-btn {
+      background-color: #0078d4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .add-btn:hover, .save-btn:hover {
+      background-color: #005fa3;
+    }
+
+    .keyword-container {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .keyword-block {
+      background: #acacac;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 6px;
+      font-size: 12px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .keyword-header {
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 2px;
+      text-align: center;
+      color: #333;
+    }
+
+    .keyword-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+
+    .keyword-item {
+      background: #b4dcf6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      flex: 0 0 auto;
+      max-width: 100%;
+    }
+
+    .keyword-text {
+      font-size: 12px;
+      white-space: pre;
+    }
+
+    .delete-btn {
+      margin-left: 6px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 2px 4px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .keyword-input-container {
+      display: flex;
+      gap: 3px;
+      margin-top: 3px;
+    }
+
+    .keyword-input {
+      flex: 1;
+      padding: 1px 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .save-btn-group {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 8px 20px;
+      background-color: #f9f9f9;
+      box-shadow: 0 -1px 4px rgba(0,0,0,0.1);
+      text-align: center;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .save-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+
+    .reset-btn {
+      padding: 4px 10px;
+      font-size: 12px;
+      background-color: #6c757d;
+    }
+
+    .reset-btn:hover {
+      background-color: #5a6268;
+    }
+  </style>
+</head>
+<body style="font-family: 'Segoe UI', sans-serif; padding: 12px; max-width: 500px; margin: auto; padding-bottom: 60px;">
+
+  <h3 style="text-align: center; font-size: 16px; margin-bottom: 12px;">PBR 贴图关键词映射表</h3>
+
+  <!-- 关键词容器 -->
+  <div id="keywordContainer" class="keyword-container"></div>
+
+  <!-- 保存 + 重置按钮 -->
+  <div class="save-btn-group">
+    <button class="reset-btn add-btn" onclick="resetMapping()">重置</button>
+    <button class="save-btn" onclick="saveMapping()">保存</button>
+  </div>
+
+  <script>
+    const keys = ['漫反射', '金属度', '粗糙度', '法线', 'AO'];
+    const mapping = {
+      '漫反射': [],
+      '金属度': [],
+      '粗糙度': [],
+      '法线': [],
+      'AO': []
+    };
+
+    // 每个通道的输入框提示语
+    const placeholders = {
+      '漫反射': '输入关键词，例如：albedo、basecolor',
+      '金属度': '输入关键词，例如：metallic、metalness',
+      '粗糙度': '输入关键词，例如：roughness、glossiness',
+      '法线': '输入关键词，例如：normal、nrm',
+      'AO': '输入关键词，例如：ao、ambient'
+    };
+
+    // 接收 Ruby 返回的数据
+    window.receiveMapping = function(data) {
+      const parsed = JSON.parse(data);
+      keys.forEach(key => {
+        mapping[key] = parsed[key] || [];
+        renderList(key, document.getElementById(`list-${key}`));
+      });
+    };
+
+    // 页面加载时请求数据
+    window.onload = function() {
+      if (window.sketchup && window.sketchup.load_mapping) {
+        window.sketchup.load_mapping(); // 触发 Ruby 的 load_mapping 回调
+      }
+    };
+
+    // 初始化界面
+    function initEditor() {
+      const container = document.getElementById('keywordContainer');
+      container.innerHTML = "";
+
+      keys.forEach(key => {
+        const block = document.createElement('div');
+        block.className = "keyword-block";
+
+        // 标题
+        const header = document.createElement('div');
+        header.className = "keyword-header";
+        header.textContent = key;
+
+        // 列表容器（关键词容器）
+        const list = document.createElement('div');
+        list.className = "keyword-list";
+        list.id = `list-${key}`;
+
+        // 输入区域
+        const inputGroup = document.createElement('div');
+        inputGroup.className = "keyword-input-container";
+
+        const input = document.createElement('input');
+        input.type = "text";
+        input.className = "keyword-input";
+        input.placeholder = placeholders[key] || "输入关键词";
+
+        // 回车键添加关键词
+        input.addEventListener("keydown", function(event) {
+          if (event.key === "Enter") {
+            const value = input.value.trim();
+            if (value && !mapping[key].includes(value)) {
+              mapping[key].push(value);
+              input.value = "";
+              renderList(key, list);
+            }
+          }
+        });
+
+        const addBtn = document.createElement('button');
+        addBtn.className = "add-btn";
+        addBtn.textContent = "添加";
+        addBtn.onclick = () => {
+          const value = input.value.trim();
+          if (value && !mapping[key].includes(value)) {
+            mapping[key].push(value);
+            input.value = "";
+            renderList(key, list);
+          }
+        };
+
+        inputGroup.appendChild(input);
+        inputGroup.appendChild(addBtn);
+
+        // 添加到 block
+        block.appendChild(header);
+        block.appendChild(list);
+        block.appendChild(inputGroup);
+        container.appendChild(block);
+      });
+
+      // 从 Ruby 加载 JSON 数据
+      sketchup.load_mapping();
+    }
+
+    // 渲染关键词列表
+    function renderList(key, container) {
+      container.innerHTML = "";
+      const list = mapping[key] || [];
+      list.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = "keyword-item";
+
+        const text = document.createElement('span');
+        text.className = "keyword-text";
+        text.textContent = item;
+
+        const delBtn = document.createElement('button');
+        delBtn.className = "delete-btn";
+        delBtn.textContent = "×";
+        delBtn.onclick = () => {
+          mapping[key].splice(index, 1);
+          renderList(key, container);
+        };
+
+        itemDiv.appendChild(text);
+        itemDiv.appendChild(delBtn);
+        container.appendChild(itemDiv);
+      });
+    }
+
+    // 保存映射
+    function saveMapping() {
+      const payload = {};
+      keys.forEach(key => {
+        payload[key] = mapping[key];
+      });
+      sketchup.save_mapping(JSON.stringify(payload));
+    }
+
+    // 重置映射
+    function resetMapping() {
+      sketchup.reset_mapping();
+    }
+
+    // 初始化界面
+    initEditor();
+  </script>
+
+</body>
+</html>
