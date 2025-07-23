@@ -275,7 +275,7 @@ module DistantVoices
     end
 
     unless file_loaded?(__FILE__)
-      main_menu = UI.menu("Plugins").add_submenu("pbr导入器")
+      main_menu = UI.menu("Plugins").add_submenu("PBR导入器")
       # 在子菜单中添加子按钮
       main_menu.add_item("导入文件") {
         select_image_files if check_sketchup_version
@@ -283,6 +283,28 @@ module DistantVoices
       main_menu.add_item("pbr关键字编辑器") {
         edit_keywords if check_sketchup_version
       }
+
+      # 添加工具栏
+      toolbar = UI::Toolbar.new "pbr导入器"
+      cmd_import = UI::Command.new("pbr导入器") {
+        select_image_files if check_sketchup_version
+      }
+      cmd_import.small_icon = "ico/pbr_importer.png"
+      cmd_import.large_icon = "ico/pbr_importer.png"
+      cmd_import.tooltip = "PBR导入器"
+      cmd_import.status_bar_text = "打开PBR导入器面板"
+      toolbar.add_item cmd_import
+
+      cmd_keywords = UI::Command.new("PBR关键字编辑器") {
+        edit_keywords if check_sketchup_version
+      }
+      cmd_keywords.small_icon = "ico/keyword_editor.png"
+      cmd_keywords.large_icon = "ico/keyword_editor.png"
+      cmd_keywords.tooltip = "PBR关键字编辑器"
+      cmd_keywords.status_bar_text = "打开PBR关键字编辑器"
+      toolbar.add_item cmd_keywords
+
+      toolbar.show
     end
 
   end
