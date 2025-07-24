@@ -4,6 +4,8 @@
 #  0.1.0: 2025年7月22日
 #         简单实现多选pbr材质贴图导入su功能
 #         可以自定义关键字
+#  0.2.0: 2025年7月24日
+#         增加了材质导出skm格式的功能
 
 require 'sketchup.rb'
 require 'extensions.rb'

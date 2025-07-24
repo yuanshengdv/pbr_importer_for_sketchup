@@ -3,6 +3,7 @@ require 'base64'
 
 module DistantVoices
   module PBR_importer
+    @pbr_materials = []
 
     #检测sketchup版本，如果版本过低，则不加载插件
     def self.check_sketchup_version
@@ -36,10 +37,40 @@ module DistantVoices
       # material.ao_enabled = true
       material.ao_texture = ao
       material.ao_strength = 1.0
+      @pbr_materials << material
 
       #选择到创建的材质
       materials = Sketchup.active_model.materials
       materials.current = material
+    end
+
+    # 获取当前用户的桌面路径
+    def self.desktop_path
+      if Sketchup.platform == :platform_win
+        ENV['USERPROFILE'] ? File.join(ENV['USERPROFILE'], 'Desktop') : nil
+      else
+        ENV['HOME'] ? File.join(ENV['HOME'], 'Desktop') : nil
+      end
+    rescue
+      Dir.pwd # 出错时返回当前目录
+    end
+
+    #保存导入的材质文件
+    def self.save_materials
+      if @pbr_materials.empty?
+        UI.messagebox("尚未导入任何材质，请先导入再导出skm材质文件")
+        return
+      end
+      # 选择文件路径
+      selected_dir = UI.select_directory(title: "选择保存路径", directory: desktop_path)
+      return unless selected_dir
+
+      @pbr_materials.each do |material|
+        material_name = material.display_name
+        filename = File.join(selected_dir, material_name + ".skm")
+        material.save_as(filename)
+      end
+      UI.messagebox("材质保存成功")
     end
 
     # 读取 keywords.json 文件并转换为 Ruby 哈希表
@@ -238,7 +269,7 @@ module DistantVoices
         end
       end
 
-      # 充值关键字按钮回调
+      # 重置关键字按钮回调
       dialog.add_action_callback("reset_mapping") do |context|
         default_path = File.join(__dir__, 'default.json')
         keywords_path = File.join(__dir__, 'keywords.json')
@@ -274,7 +305,32 @@ module DistantVoices
       #puts "文件已保存至：#{cache_path}"
     end
 
+    #定义应用观察者类，用于检测模型切换时重置导入的pbr材质变量
+    class PBRAppObserver < Sketchup::AppObserver
+      def onNewModel(model)
+        DistantVoices::PBR_importer.reset_pbr_materials
+      end
+      def onOpenModel(model)
+        DistantVoices::PBR_importer.reset_pbr_materials
+      end
+    end
+
+    # 重置pbr材质变量
+    def self.reset_pbr_materials
+      @pbr_materials = []
+    end
+
+    # 安装应用观察者
+    def self.install_app_observer
+      unless @observer_installed
+        Sketchup.add_observer(PBRAppObserver.new)
+        @pbr_materials = []
+        @observer_installed = true
+      end
+    end
+
     unless file_loaded?(__FILE__)
+      install_app_observer
       main_menu = UI.menu("Plugins").add_submenu("PBR导入器")
       # 在子菜单中添加子按钮
       main_menu.add_item("导入文件") {
@@ -282,6 +338,9 @@ module DistantVoices
       }
       main_menu.add_item("pbr关键字编辑器") {
         edit_keywords if check_sketchup_version
+      }
+      main_menu.add_item("导出PBR材质") {
+        save_materials if check_sketchup_version
       }
 
       # 添加工具栏
@@ -303,6 +362,15 @@ module DistantVoices
       cmd_keywords.tooltip = "PBR关键字编辑器"
       cmd_keywords.status_bar_text = "打开PBR关键字编辑器"
       toolbar.add_item cmd_keywords
+
+      cmd_export = UI::Command.new("导出PBR材质") {
+        save_materials if check_sketchup_version
+      }
+      cmd_export.small_icon = "ico/pbr_export.png"
+      cmd_export.large_icon = "ico/pbr_export.png"
+      cmd_export.tooltip = "导出PBR材质"
+      cmd_export.status_bar_text = "导出此sketchup场景此次打开后，通过本插件导入的全部pbr材质"
+      toolbar.add_item cmd_export
 
       toolbar.show
     end
