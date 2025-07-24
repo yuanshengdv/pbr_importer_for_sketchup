@@ -16,7 +16,7 @@ module DistantVoices
     unless file_loaded?(__FILE__)
       ex = SketchupExtension.new('pbr importer', 'pbr_importer/main')
       ex.description = '为sketchup2025或更高版本实现多选pbr贴图，然后一次性导入新建材质的功能'
-      ex.version     = "0.1.0"
+      ex.version     = "0.2.0"
       ex.copyright   = 'Copyright (c) 2025 DistantVoices.'
       ex.creator     = 'DistantVoices'
       Sketchup.register_extension(ex, true)
